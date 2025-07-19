@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useRef, memo, type ReactNode } from "react";
 import { useQueryState } from "nuqs";
 import { Input } from "../components/ui/input";
