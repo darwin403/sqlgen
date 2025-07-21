@@ -8,8 +8,8 @@ const KV_KEY = 'llm_request_count_daily';
 export async function POST(req: NextRequest) {
   try {
     await checkSystemRateLimit();
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 429 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 429 });
   }
 
   const body = await req.json();
@@ -21,9 +21,14 @@ export async function POST(req: NextRequest) {
 
   // Build schema description with quotes for table names with dots
   const schemaDesc = schema
-    .map((t: any) => {
+    .map((t: { table: string; columns: { name: string; type: string }[]; sampleRows?: unknown[] }) => {
       const tableName = t.table.includes('.') ? `public."${t.table}"` : t.table;
-      return `${tableName}(${t.columns.join(', ')})`;
+      const cols = t.columns.map((c: { name: string; type: string }) => `${c.name} ${c.type}`).join(', ');
+      let sampleRowsStr = '';
+      if (t.sampleRows && t.sampleRows.length > 0) {
+        sampleRowsStr = `\nSample rows: ${JSON.stringify(t.sampleRows)}`;
+      }
+      return `${tableName}(${cols})${sampleRowsStr}`;
     })
     .join('; ');
 
@@ -69,7 +74,7 @@ export async function POST(req: NextRequest) {
     // Remove markdown code block enclosures
     sql = sql.replace(/^```sql\s*|^```|```$/gim, '').replace(/```$/g, '').trim();
     return NextResponse.json({ sql });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 } 

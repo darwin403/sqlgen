@@ -4,17 +4,18 @@ import { checkSystemRateLimit } from '../llm/rateLimit';
 export async function POST(req: NextRequest) {
   try {
     await checkSystemRateLimit();
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 429 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 429 });
   }
   const { schema } = await req.json();
   const apiKey = process.env.OPENAI_KEY;
   if (!apiKey) return NextResponse.json({ error: 'Missing OpenAI key' }, { status: 500 });
 
   const schemaDesc = schema
-    .map((t: any) => {
+    .map((t: { table: string; columns: { name: string; type: string }[] }) => {
       const tableName = t.table.includes('.') ? `public."${t.table}"` : t.table;
-      return `${tableName}(${t.columns.join(', ')})`;
+      const cols = t.columns.map((c: { name: string; type: string }) => `${c.name} ${c.type}`).join(', ');
+      return `${tableName}(${cols})`;
     })
     .join('; ');
 
@@ -47,7 +48,7 @@ Schema: ${schemaDesc}`;
       suggestions = [];
     }
     return NextResponse.json({ suggestions });
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 });
+  } catch (e: unknown) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
   }
 } 

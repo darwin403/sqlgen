@@ -20,7 +20,7 @@ import { X, Maximize2, Plus, RefreshCw } from "lucide-react";
 import { nanoid } from "nanoid";
 import { useCallback } from "react";
 
-type TableSchema = { table: string; columns: string[] };
+type TableSchema = { table: string; columns: { name: string; type: string }[] };
 type QueryResult = { columns: string[]; rows: any[] };
 type Connection = { name: string; uri: string };
 type Message = { role: "user" | "assistant"; content: string };
@@ -596,7 +596,9 @@ export default function Home() {
                 </div>
                 {collapsed[t.table] && (
                   <div className="text-xs text-muted-foreground mt-1">
-                    {t.columns.join(", ")}
+                    {t.columns
+                      .map((col) => `${col.name} (${col.type})`)
+                      .join(", ")}
                   </div>
                 )}
               </Card>

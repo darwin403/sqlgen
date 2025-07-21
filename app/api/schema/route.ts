@@ -8,11 +8,17 @@ export async function POST(req: NextRequest) {
     const client = new Client({ connectionString: uri });
     await client.connect();
     const tablesRes = await client.query(`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
-    const tables = tablesRes.rows.map((r: any) => r.table_name);
+    const tables = tablesRes.rows.map((r: { table_name: string }) => r.table_name);
     const schema = [];
     for (const table of tables) {
-      const colsRes = await client.query(`SELECT column_name FROM information_schema.columns WHERE table_name = $1`, [table]);
-      schema.push({ table, columns: colsRes.rows.map((c: any) => c.column_name) });
+      const colsRes = await client.query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name = $1`, [table]);
+      const columns: { name: string; type: string }[] = colsRes.rows.map((c: { column_name: string; data_type: string }) => ({ name: c.column_name, type: c.data_type }));
+      let sampleRows: unknown[] = [];
+      try {
+        const sampleRes = await client.query(`SELECT * FROM "${table}" LIMIT 5`);
+        sampleRows = sampleRes.rows;
+      } catch {}
+      schema.push({ table, columns, sampleRows });
     }
     await client.end();
     return NextResponse.json(schema);
